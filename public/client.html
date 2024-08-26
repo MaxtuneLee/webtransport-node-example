@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <title>WebTransport over HTTP/3 client</title>
+  <meta charset="utf-8">
+  <script src="/public/client.js"></script>
+  <link rel="stylesheet" href="/public/client.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <body>
+  <div id="top">
+    <div id="explanation">
+      This tool can be used to connect to an arbitrary WebTransport server.
+      It has several limitations:
+      <ul>
+        <li>It can only send an entirety of a stream at once.  Once the stream
+          is opened, all of the data is immediately sent, and the write side of
+          the steam is closed.</li>
+        <li>This tool does not listen to server-initiated bidirectional
+          streams.</li>
+        <li>Stream IDs are different from the one used by QUIC on the wire, as
+          the on-the-wire IDs are not exposed via the Web API.</li>
+        <li>The <code>WebTransport</code> object can be accessed using the developer console via <code>currentTransport</code>.</li>
+      </ul>
+    </div>
+    <div id="tool">
+    <h1>WebTransport over HTTP/3 client</h1>
+    <div>
+      <h2>Establish WebTransport connection</h2>
+      <div class="input-line">
+      <label for="url">URL:</label>
+      <input type="text" name="url" id="url"
+             value="https://localhost:4433/">
+      <input type="button" id="connect" value="Connect" onclick="connectHandler()">
+      <input type="button" id="add_client" value="Add Client" onclick="AddClient()">
+      </div>
+    </div>
+    <div>
+      <h2>Send data over WebTransport</h2>
+      <form name="sending">
+      <textarea name="data" id="data"></textarea>
+      <div>
+        <input type="radio" name="sendtype" value="datagram"
+               id="datagram" checked>
+        <label for="datagram">Send a datagram</label>
+      </div>
+      <div>
+        <input type="radio" name="sendtype" value="unidi" id="unidi-stream">
+        <label for="unidi-stream">Open a unidirectional stream</label>
+      </div>
+      <div>
+        <input type="radio" name="sendtype" value="bidi" id="bidi-stream">
+        <label for="bidi-stream">Open a bidirectional stream</label>
+      </div>
+      <input type="button" id="send" name="send" value="Send data"
+             disabled onclick="sendDataHandler()">
+      <div>
+        <label for="autotest-count">Auto test group count:</label>
+        <input type="number" id="autotest-count" name="autotest-count" min="1" value="2048">
+      </div>
+      <input type="button" id="autotest" name="autotest" value="Auto test"
+             disabled onclick="AutoTest()">
+      <input type="button" id="mutiple_client_test" name="mutiple_client_test" value="Mutiple Client Test"
+             disabled onclick="MutipleClientTest()">
+      <input type="button" id="clear" name="clear" value="Clear log"
+             onclick="clearLog()">
+      <input type="button" id="close" name="close" value="Close"
+             onclick="closeTransport()">
+      </form>
+    </div>
+    <div>
+      <h2>Event log</h2>
+      <ul id="event-log"></ul>
+      <div id="state-log"></div> <!-- State log -->
+    </div>
+    </div>
+    </div>
+  </div>
+  </body>
+</html>

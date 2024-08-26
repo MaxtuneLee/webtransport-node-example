@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fails-components/webtransport": "^1.1.3",
+    "@fails-components/webtransport-transport-http3-quiche": "^1.1.3",
+    "@fastify/static": "^7.0.4",
+    "fastify": "^4.28.1",
+    "nodemon": "^3.1.4"
+  }
+}
