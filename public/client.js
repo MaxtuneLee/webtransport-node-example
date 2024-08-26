@@ -17,10 +17,31 @@ let ClientList = [];
 let worker = new Worker('/public/worker.js');
 
 worker.onmessage = function (event) {
-  console.log('Received message ' + event.data);
+  console.log('Received message: ' + event.data.msg);
+  event.data?.msg && addToEventLog(event.data.msg);
+  if (event.data?.msg === 'Datagram writer ready.') {
+    document.forms.sending.elements.send.disabled = false;
+    document.getElementById('connect').disabled = true;
+    document.getElementById('autotest').disabled = false; // Enable Auto test button
+    Button_checker()
+  }
+  if (event.data.cmd === 'autosuccess') {
+    let stateLog = document.getElementById('state-log');
+    stateLog.innerText = 'State: Success';
+    stateLog.style.color = 'green';
+  } else if (event.data.cmd === 'autofail') {
+    let stateLog = document.getElementById('state-log');
+    stateLog.innerText = 'State: Failed';
+    stateLog.style.color = 'red';
+  }
 }
-worker.postMessage({ cmd: 'start', msg: 'hello' });
 
+requestAnimationFrame(function logTime() {
+  if (LogQueue) {
+    flushLogQueue();
+  }
+  requestAnimationFrame(logTime);
+});
 
 async function AddClient() {
   let url = document.getElementById('url').value;
@@ -42,59 +63,7 @@ async function AddClient() {
 
 async function connectHandler() {
   const url = document.getElementById('url').value;
-  try {
-    transport = new WebTransport(url, {
-      serverCertificateHashes: [
-        {
-          algorithm: 'sha-256',
-          value: new Uint8Array(fingerprint)
-        }
-      ]
-    });
-    addToEventLog('Initiating connection...');
-  } catch (e) {
-    addToEventLog('Failed to create connection object. ' + e, 'error');
-    return;
-  }
-  console.log(transport);
-  currentTransport = transport;
-  await connect(transport);
-  flushLogQueue();
-}
-
-async function connect(transport) {
-  generateRandomString();
-  randomString = generateRandomString(10);
-  try {
-    await transport.ready;
-    addToEventLog('Connection ready.');
-  } catch (e) {
-    addToEventLog('Connection failed. ' + e, 'error');
-    return;
-  }
-  transport.closed
-    .then(() => {
-      addToEventLog('Connection closed normally.');
-    })
-    .catch(() => {
-      addToEventLog('Connection closed abruptly.', 'error');
-    });
-  streamNumber = 1;
-  try {
-    addToEventLog('Datagram writer ready.');
-  } catch (e) {
-    addToEventLog('Sending datagrams not supported: ' + e, 'error');
-    return;
-  }
-  readDatagrams(transport);
-  acceptUnidirectionalStreams(transport);
-  document.forms.sending.elements.send.disabled = false;
-  document.getElementById('connect').disabled = true;
-  document.getElementById('autotest').disabled = false; // Enable Auto test button
-
-  Button_checker();
-
-  flushLogQueue();
+  worker.postMessage({ cmd: 'connect', url: url });
 }
 
 function Button_checker() {
@@ -134,7 +103,6 @@ async function sendDataHandler() {
 
   await timeout(100);
   flushLogQueue();
-
 }
 
 async function sendData(transport) {
@@ -145,14 +113,7 @@ async function sendData(transport) {
   try {
     switch (form.sendtype.value) {
       case 'datagram': {
-        await randomData_tosend.add(random_gen_data);
-        let writer = transport.datagrams.writable.getWriter();
-        await writer.write(data);
-
-        // close the writer to indicate that we're done sending datagrams
-        // await transport.datagrams.writable.close(); is error
-        await writer.releaseLock();
-        // await addToEventLog('Sent datagram: ' + random_gen_data);
+        worker.postMessage({ cmd: 'send', data: random_gen_data });
         break;
       }
       case 'unidi': {
@@ -202,7 +163,7 @@ async function readDatagrams(transport) {
       let data = decoder.decode(value);
       // await addToEventLog('Echo Datagram received: ' + data);
       // console.log('Echo Datagram received: ' + data);
-      await validateData(data);
+      validateData(data);
       recv_data_for_auto_test.add(data);
       flushLogQueue();
     }
@@ -359,49 +320,7 @@ function generateRandomString(length = 10) {
 }
 
 async function AutoTest() {
-  auto_test_suc_cnt = 0;
-  let autoTestCount = parseInt(document.getElementById('autotest-count').value, 10);
-  // 清空event-log
-  // document.getElementById('event-log').innerHTML = '';
-  LogTimeSpent = 0;
-  let record_timestamp = performance.now();
-  for (let i = 0; i < autoTestCount; i++) {
-    // await addToEventLog('Running auto test iteration ' + (i + 1), 1);
-    // randomData_tosend = generateRandomString(); // Ensure generate new random data
-    await sendData(currentTransport);
-  }
-  // 计算总共耗时
-  let time_diff = performance.now() - record_timestamp;
-  // wait for 0.2s to check the result
-  await timeout(500);
-
-  let stateLog = document.getElementById('state-log');
-  // if (auto_test_suc_cnt == autoTestCount) {
-
-  if (randomData_tosend.size == recv_data_for_auto_test.size) {
-    addToEventLog('Auto test success! ' + auto_test_suc_cnt + '/' + autoTestCount, 'summary');
-    stateLog.innerText = 'State: Success';
-    stateLog.style.color = 'green';
-  } else {
-    addToEventLog('Auto test failed! ' + auto_test_suc_cnt + '/' + autoTestCount, 'summary');
-    addToEventLog('Fail test = ');
-
-
-    // addToEventLog("Recv data size = " + recv_data_for_auto_test.size);
-    // addToEventLog("Send data size = " + randomData_tosend.size);
-
-    // for (let entry of recv_data_for_auto_test) {
-    //   if (!randomData_tosend.has(entry))
-    //     addToEventLog(entry);
-    // }
-
-    stateLog.innerText = 'State: Failed';
-    stateLog.style.color = 'red';
-  }
-  addToEventLog('Total time: ' + time_diff + 'ms', 'summary');
-  randomData_tosend.clear();
-  recv_data_for_auto_test.clear();
-  flushLogQueue();
+  worker.postMessage({ cmd: 'autotest', count: document.getElementById('autotest-count').value });
 }
 
 function clearLog() {
