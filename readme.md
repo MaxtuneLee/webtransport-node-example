@@ -1,4 +1,4 @@
-# 基于XQUIC-webtransport的前端演示Example
+# 基于XQUIC-webtransport的 node 服务端 Example
 
 Fork From [webtransport-webclient-example](https://github.com/Sy0307/webtransport-webclient-example)
 
@@ -6,19 +6,21 @@ Fork From [webtransport-webclient-example](https://github.com/Sy0307/webtranspor
 
 ## Quick Start
 
-1.进入`cert`目录，执行`./generate`
+1.进入`cert`目录，执行`./generate`，在系统中信任颁发的证书
 
-2.启动`http-server`
+2.终端运行
 
-3.访问`client.html`
+```bash
+pnpm i
+pnpm dev
+```
 
-4.启动你的Quic服务器，通过`Connect`按钮连接。
+3.访问`https://localhost:3000`
 
-5.通过`Send`按钮发送数据。
+4.点击`Connect`按钮连接。
 
-## Feature List
+5.点击`Auto test`按钮自动测试。
 
-- [x] 随机字符串
-- [x] 自动发送校验测试
-- [x] 往返速度测试
-- [x] 多客户端连接测试
+## TODO
+
+- [ ] 使用 worker 进行通信，防止阻塞，提高通信效率
