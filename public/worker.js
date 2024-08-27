@@ -149,6 +149,24 @@ async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function readData(readable) {
+    const reader = readable.getReader();
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+            break;
+        }
+        const data = new TextDecoder().decode(value);
+        addToEventLog('Data received: ' + data);
+    }
+}
+
+async function writeData(writable, data) {
+    const writer = writable.getWriter();
+    await writer.write(data);
+    await writer.close();
+}
+
 self.addEventListener('message', async function (e) {
     const data = e.data;
 
@@ -181,9 +199,27 @@ self.addEventListener('message', async function (e) {
                 return;
             }
             addToEventLog('Sending data: ' + data.data);
-            const dataToSend = encoder.encode(data.data);
-            randomData_tosend.add(dataToSend);
-            await currentWriter.write(dataToSend);
+            switch (data.type) {
+                case 'datagram':
+                    const dataToSend = encoder.encode(data.data);
+                    randomData_tosend.add(dataToSend);
+                    await currentWriter.write(dataToSend);
+                    addToEventLog('Datagram sent.');
+                    break;
+                case 'unidi':
+                    let stream = await transport.createUnidirectionalStream();
+                    let writer = stream.getWriter();
+                    await writer.write(encoder.encode(data.data));
+                    await writer.close();
+                    addToEventLog('Unidirectional stream sent.');
+                    break;
+                case 'bidi':
+                    let stream2 = await transport.createBidirectionalStream();
+                    await writeData(stream2.writable, encoder.encode(data.data));
+                    await readData(stream2.readable);
+                    addToEventLog('Bidirectional stream sent.');
+                    break;
+            }
             break;
         case 'autotest':
             if (!currentTransport) {

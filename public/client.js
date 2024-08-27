@@ -113,28 +113,15 @@ async function sendData(transport) {
   try {
     switch (form.sendtype.value) {
       case 'datagram': {
-        worker.postMessage({ cmd: 'send', data: random_gen_data });
+        worker.postMessage({ cmd: 'send', type: 'datagram', data: random_gen_data });
         break;
       }
       case 'unidi': {
-        let stream = await transport.createUnidirectionalStream();
-        let writer = stream.getWriter();
-        await randomData_tosend.add(random_gen_data);
-        await writer.write(data);
-        await writer.close();
-        addToEventLog('Sent a unidirectional stream with data: ' + random_gen_data);
+        worker.postMessage({ cmd: 'send', type: 'unidi', data: random_gen_data });
         break;
       }
       case 'bidi': {
-        let stream = await transport.createBidirectionalStream();
-        let number = streamNumber++;
-        acceptBidirectionalStreams(transport, stream, random_gen_data);
-        let writer = stream.writable.getWriter();
-        await writer.write(data);
-        await writer.close();
-        addToEventLog(
-          'Opened bidirectional stream #' + number +
-          ' with data: ' + random_gen_data);
+        worker.postMessage({ cmd: 'send', type: 'bidi', data: random_gen_data });
         break;
       }
     }
